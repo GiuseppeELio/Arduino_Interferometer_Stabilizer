@@ -11,4 +11,4 @@ Using one of the Matlab, Python or Standalone GUI you will obtaine a user friend
 ![](GUI_working_example/GUI.png)
 
 There you can set all the useful parameters, Activate or Deactive the PID, collect your data, save them, print and display in the embedded plotter or analyzed them as showin in the next figure
-![](GUI_working_example/GUI)
+![](GUI_working_example/GUI_analysis.png)
