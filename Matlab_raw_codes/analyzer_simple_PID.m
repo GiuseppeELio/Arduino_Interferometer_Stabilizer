@@ -1,5 +1,5 @@
 %%
-function analyzer_simple_PID (I1,I2,Q1,Q2,Delta, V)
+function analyzer_simple_PID (I1,I2,Q1,Q2,Delta, V,sample_time)
 indici_non_zeri = find(I1 ~= 0);
 I1_NZ = I1(indici_non_zeri);
 I2_NZ = I2(indici_non_zeri);
@@ -67,7 +67,7 @@ title('Fasi Stimate (Gradi)'); % Aggiungi un titolo per chiarezza
 
 %%
 % plot(mod(Phi2_deg-Phi1_deg,360))
-delta_0 = atan2(-(V1_est/180).*sign(I1_NZ),(V2_est/30).*sign(I2_NZ));
+delta_0 = atan2(-(V1_est/206).*sign(I1_NZ),(V2_est/55).*sign(I2_NZ));
 %delta_0 = atan2(-(I1_NZ/180)*avg_phi,(I2_NZ/30));
 figure();
 subplot(211)
@@ -90,11 +90,12 @@ figure();
 len = round(length(Delta_NZ)/2);
 tf_off = fft(Delta_NZ(1:len));
 tf_on = fft(Delta_NZ((len+1):end));
-freq_off = ([1:1:length(tf_off)])/(0.05*length(tf_off));
-freq_on = ([1:1:length(tf_on)])/(0.05*length(tf_on));
-plot(freq_off,abs(tf_off))
+freq_off = ([1:1:length(tf_off)])/(sample_time*length(tf_off));
+freq_on = ([1:1:length(tf_on)])/(sample_time*length(tf_on));
+semilogy(freq_off,abs(tf_off))
 hold on
-plot(freq_on,abs(tf_on))
+semilogy(freq_on,abs(tf_on))
+xlim([0, max(freq_off)/2])
 xlabel('Frequencies (Hz)')
 title('FFT');
 legend('PID OFF','PID ON');
