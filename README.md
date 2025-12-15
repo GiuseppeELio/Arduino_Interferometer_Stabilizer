@@ -3,10 +3,12 @@ An open hardware/source and low-cost interferometer stabilizer equipped with a d
 
 ![](Python_GUI_PID_ON_OFF/icon.ico)
 
-The proposed firmware control a specific arduino Giga R1 shield designed to operate as function of the input signal coming from an interferometer where a piezo-electric mirror is direcly controlled by the Piezo DAC output (from the same board). The code is also embedded in different GUIs (Matlab and Python) or in Standalone applications made for Win and Mac Os.
- 
-All the data are also available at [Zenodo repository](https://doi.org/10.5281/zenodo.17761098) including also the standalone application (.dmg and .exe). These were located there for their large size.
+The proposed firmware control a specific arduino Giga R1 shield designed to operate as function of the input signal coming from an interferometer where a piezo-electric mirror is direcly controlled by the Piezo DAC output (from the same board). Moreover, the Python GUI code can also be compiled to be a Standalone applications made for Win and Mac Os. To do that, install PyInstaller and then in the Python IDE/ terminal exectute:
 
+! pyinstaller --windowed --name InterferometerStabilizer --icon=icon.icns InterferometerStabilizer_GUI_Py.py
+
+It will create a .exe application if you are using Windows or an .app file if compiled by using Mac Os. 
+ 
 Using one of the Matlab, Python or Standalone GUI you will obtaine a user friendly software like the one reported in the Figure below 
 ![](GUI_working_example/GUI.png)
 
