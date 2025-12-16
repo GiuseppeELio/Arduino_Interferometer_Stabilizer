@@ -1,5 +1,5 @@
 # Arduino_Interferometer_Stabilizer
-An open hardware/source and low-cost interferometer stabilizer equipped with a digital lock-in amplifier.
+An open hardware/source and low-cost interferometer stabilizer equipped with a digital lock-in amplifier. The Arduino board used for this device is Arduino GIGA R1 WiFi. 
 
 ![](Python_GUI_PID_ON_OFF/icon.ico)
 
@@ -14,3 +14,6 @@ Using one of the Matlab, Python or Standalone GUI you will obtaine a user friend
 
 There you can set all the useful parameters, Activate or Deactive the PID, collect your data, save them, print and display in the embedded plotter or analyzed them as showin in the next figure
 ![](GUI_working_example/GUI_analysis.png)
+
+
+About the electronic and the board manufacturing, the schematics, the Gerber file, the BoM and the Pick and Place files are avaialble in the relative directories.  
