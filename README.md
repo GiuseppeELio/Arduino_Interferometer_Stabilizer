@@ -1,4 +1,4 @@
-# Arduino_Interferometer_Stabilizer
+# Arduino Interferometer Stabilizer
 An open hardware/source and low-cost interferometer stabilizer equipped with a digital lock-in amplifier. The Arduino board used for this device is Arduino GIGA R1 WiFi. 
 
 ![](Python_GUI_PID_ON_OFF/icon.ico)
