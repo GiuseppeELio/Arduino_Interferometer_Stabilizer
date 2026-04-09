@@ -11,8 +11,11 @@ The proposed firmware control a specific arduino Giga R1 shield designed to oper
 
 It will create a .exe application if you are using Windows or an .app file if compiled by using Mac Os. 
  
-Using one of the Matlab, Python or Standalone GUI you will obtaine a user friendly software like the one reported in the Figure below 
-![](GUI_working_example/GUI.png)
+Using one of the Matlab, Python or Standalone GUI you will obtaine a user friendly software like the one reported in the Figure below. It shows the calibration proceedure with the related plots in terms of X1,X2,Y1 and Y2 on the top right plot, the delta on the central plot and the V offset in the bottom right one. 
+![](GUI_working_example/SI_Gui_calibration.png)
+
+Furthermore, in the following screenshot you can see the monitor V+/V- and the AC channel displayed by the GUI during a measurement
+![](GUI_working_example/SI_GUI_Monitor.png)
 
 There you can set all the useful parameters, Activate or Deactive the PID, collect your data, save them, print and display in the embedded plotter or analyzed them as showin in the next figure
 ![](GUI_working_example/GUI_analysis.png)
