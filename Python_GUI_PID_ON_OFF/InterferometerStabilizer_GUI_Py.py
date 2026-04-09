@@ -32,6 +32,26 @@ import json # To create the database for the set parameters
 from pathlib import Path 
 
 
+class FakeSerial:
+    def __init__(self):
+        self.in_waiting = 1
+
+    def readline(self):
+        import numpy as np
+        I1 = np.random.randn()
+        I2 = np.random.randn()
+        Q1 = np.random.randn()
+        Q2 = np.random.randn()
+        Delta = np.random.randn() * 0.1
+        V = np.random.uniform(0, 1)
+        return f"{I1},{I2},{Q1},{Q2},{Delta},{V}\n".encode()
+
+    def write(self, data):
+        pass
+
+    def close(self):
+        pass
+
 # ---------------- Serial reader QThread ----------------
 class SerialReader(QThread):
     # Rimosso line_received per ridurre l'overhead. La coda À il meccanismo principale.
@@ -320,7 +340,7 @@ class MainWindow(QWidget):
             
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Arduino PID Control & PGA - MATLAB style")
+        self.setWindowTitle("Arduino PID Control & PGA")
         self.resize(1200, 700)
 
         # Thread pool per eseguire operazioni non-GUI
@@ -884,7 +904,12 @@ class MainWindow(QWidget):
         port = self.port_edit.text().strip()
         baud = int(self.baud_spin.value())
         try:
-            self.ser = serial.Serial(port, baud, timeout=0.01) # Timeout ridotto per non bloccare il SerialReader
+            #self.ser = serial.Serial(port, baud, timeout=0.01) # Timeout ridotto per non bloccare il SerialReader
+            try:
+                self.ser = serial.Serial(port, baud, timeout=0.01)
+            except:
+                self.log("⚠️ Arduino non trovato — avvio modalità simulazione")
+                self.ser = FakeSerial()
             with self.line_queue.mutex:
                 self.line_queue.queue.clear()
             self.reader = SerialReader(self.ser, self.line_queue)
@@ -981,11 +1006,6 @@ class MainWindow(QWidget):
             self.log("Parameters unknown")
             return
         
-        if val is not None:
-            cmd = f"SET {param} {val}"
-            self.log(f"Sending: {cmd}")
-            self.simple_cmd(cmd)      
-            
         if val is not None:
             cmd = f"SET {param} {val}"
             self.log(f"Sending: {cmd}")
@@ -1199,30 +1219,37 @@ class MainWindow(QWidget):
 
 
     # ---------------- update plots in GUI (chiamato dal segnale) ----------------
-    def update_print_plots(self, I1, Q1, I2, Q2, Delta, V):
-        # I/Q
+    def update_print_plots(self, I1, I2, Q1, Q2, Delta, V):
+
+        # ---------------- I/Q ----------------
         self.ax_IQ.clear()
-        self.ax_IQ.plot(I1, label='X1'); self.ax_IQ.plot(I2, label='X2'); self.ax_IQ.plot(Q1, label='Y1'); self.ax_IQ.plot(Q2, label='Y2')
-        #self.ax_IQ.set_title('X1, Y1, X2, Y2');
-        self.ax_IQ.set_xlabel('Sample'); 
-        self.ax_IQ.set_ylabel('Amplitude');
-        self.ax_IQ.legend(fontsize=8)
-        self.fig_IQ.tight_layout() 
+        self.ax_IQ.plot(I1, label="X1")
+        self.ax_IQ.plot(I2, label="X2")
+        self.ax_IQ.plot(Q1, label="Y1")
+        self.ax_IQ.plot(Q2, label="Y2")
+        #self.ax_IQ.set_title("I / Q Channels", loc='left')
+        self.ax_IQ.set_xlabel('Sample')
+        self.ax_IQ.set_ylabel('Amplitude')
+        #self.ax_IQ.legend()
+        self.ax_IQ.legend(prop={'size': 7}, framealpha=0.7)
+        self.fig_IQ.tight_layout()
         self.canvas_IQ.draw()
 
-        # Delta (second canvas)
+        # ---------------- DELTA ----------------
         self.ax_Delta.clear()
-        self.ax_Delta.plot(np.degrees(Delta), label='$\delta$ (deg)')
-        #self.ax_Delta.set_title('$\delta$ (deg)')
-        self.ax_Delta.set_xlabel('Sample'); self.ax_Delta.set_ylabel('$\delta$ (deg)'); #self.ax_Delta.legend()
-        self.fig_Delta.tight_layout() 
+        self.ax_Delta.plot(np.degrees(Delta), label="Delta (deg)")
+        #self.ax_Delta.set_title("Delta (deg)", loc='left')
+        self.ax_Delta.set_xlabel('Sample')
+        self.ax_Delta.legend(prop={'size': 7}, framealpha=0.7)
+        self.fig_Delta.tight_layout()
         self.canvas_Delta.draw()
 
-        # V (third canvas)
+        # ---------------- V OFFSET ----------------
         self.ax_V.clear()
-        self.ax_V.plot(V, '.-')
-        #self.ax_V.set_title('$V_{offset}$')
-        self.ax_V.set_xlabel('Sample'); self.ax_V.set_ylabel('$V_{offset}$'); #self.ax_V.legend(['V_off'])
+        self.ax_V.plot(V, '.-', label="V offset")
+        #self.ax_V.set_title("V offset", loc='left')
+        self.ax_V.set_xlabel('Sample')
+        self.ax_V.legend(prop={'size': 7}, framealpha=0.7)
         self.fig_V.tight_layout()
         self.canvas_V.draw()
 
