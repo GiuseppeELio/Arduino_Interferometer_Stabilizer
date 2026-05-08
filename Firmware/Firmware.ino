@@ -3,9 +3,10 @@
 //#define DEBUG_PID
 //#define DEBUG_LOCK_IN
 //#define DEBUG_LOCK_IN_TAU // change the number of NUM_COLL and the sample_interval_ms = 5
-//#define _START_UP_MESSAGE_
+#define _START_UP_MESSAGE_
 // ====================================================
 
+// Variables for DAC
 const float FREQUENCY_HZ = 1000.0;  //Sinusoidal frequency
 const float SAMPLE_RATE_HZ = 100000.0;
 const int NUM_SAMPLES = (int)(SAMPLE_RATE_HZ / FREQUENCY_HZ);
@@ -14,35 +15,36 @@ const int SAMPLE_INTERVAL_US = (int)(1000000.0 / SAMPLE_RATE_HZ);
 const int DAC_RESOLUTION = 4096;
 const int DAC_MAX_VALUE = DAC_RESOLUTION - 1;
 
+// Inizialization of the LUTs for AC signals
 float sine_wave_table[NUM_SAMPLES];
 float sine_wave_table_2[NUM_SAMPLES];
 float ttl_table[NUM_SAMPLES];
 
+int write_value_DAC0;
+int write_value_DAC1;
+
+// Coefficients for fundamental harmonic amplitude and offset
+float voltage_offset = 0.5; // no more than 0.5
+float amplitude_scale = 0.04;  // no more than 0.5
+// Coefficients for fundamental (a1) and second harmonic (a2)
+float a1_coeff = 0.5;  // set to be at 0.5 and produce a sinusoidal wave for reference
+float a2_coeff = 0.0;
+
+// times for state machines and other operations
+int current_sample_index = 0;
+unsigned long previous_time_ms = 0;
+volatile long sample_interval_ms = 51;  // 50ms to sample 100 times in 5s
+
+int sample_index = 0;
+static unsigned long next_sample_time = 0;
+
+unsigned long previous_time_us = 0;
+int previous_time_idx = 0;
+
+// Variables for Lock-in
 float vin_store[NUM_SAMPLES];
 float sin_store[NUM_SAMPLES];
 float cos_store[NUM_SAMPLES];
-
-int current_sample_index = 0;
-unsigned long previous_time_ms = 0;
-volatile long sample_interval_ms = 51;  // 50ms per campionare 100 volte in 5s
-
-#ifdef DEBUG_LOCK_IN_TAU  // If activated it enable new paramters for state machine and overwrite previous sample time parameter
-unsigned long previous_time_ms_3 = 0;
-bool togle = 1;
-volatile int NUM_COLL = 1000;
-volatile long sample_interval_ms = 5;  //For the Debug Lock In Tau we advice to use a fast sample interval
-#endif
-
-bool monitor_flag = false;  // boolean to enable the V+ and V- DC monitor
-const int monitor_buffer_size = 500;  // Numero di campioni per blocco
-float vp_buffer[monitor_buffer_size];
-float vm_buffer[monitor_buffer_size];
-int z_buffer[monitor_buffer_size];
-int monitor_idx = 0;
-// Temporary variables
-unsigned long last_monitor_millis = 0;
-const unsigned long monitor_interval = 0.5; // campionamento ogni 10 ms (1 KHz)
-
 
 const int MAX_COLL = 4000;
 volatile int NUM_COLL = 200;
@@ -53,28 +55,12 @@ float Y2_store[MAX_COLL];
 float VO_store[MAX_COLL];
 float DELTA_store[MAX_COLL];
 
-int write_value_DAC0;
-int write_value_DAC1;
-
-int sample_index = 0;
-static unsigned long next_sample_time = 0;
-
-int pinsdi = 35;  // SDI - shared]
-int pinclk = 34;  // CLK - shared
-
-// Chip select pins for the 4 PGAs Programmable Gain Amplifiers MAX9939
-int pincs[4] = { 30, 32, 33, 31 };  // CS0 to CS3
-// Real Gain V/V reference values for MAX9939
-const float gainTable[4] = {0.25, 1, 10, 120
-};
-int presetSelected[4];  // 4 chip select
-// Voffset controllato (inizializzato al valore di prima)
-float voltage_offset = 0.5;
-
-float amplitude_scale = 0.08;  // non più di 0.5
-// Coefficients for fundamental (a1) and second harmonic (a2)
-float a1_coeff = 0.5;  // set to be at 0.5 and produce a sinusoidal wave for reference
-float a2_coeff = 0.0;
+#ifdef DEBUG_LOCK_IN_TAU  // If activated it enable new paramters for state machine and overwrite previous sample time parameter
+unsigned long previous_time_ms_3 = 0;
+bool togle = 1;
+volatile int NUM_COLL = 1000;
+volatile long sample_interval_ms = 5;  //For the Debug Lock In Tau we advice to use a fast sample interval
+#endif
 
 // === Lock-in Detection ===
 const int analogInput = A1;       // Analogic Input V+ AC
@@ -99,9 +85,31 @@ volatile float delta_0 = 0;
 const float pi = 3.14159;
 const float delta_target = pi / 2;
 
-//--------------------Variable for calibration
-volatile float R1_max_cal = 180.0;  // Initial gues amplitude for R1
-volatile float R2_max_cal = 30.0;   // Initial gues amplitude for R2
+//Variables for Monitors 
+bool monitor_flag = false;  // boolean to enable the V+ and V- DC monitor
+const int monitor_buffer_size = 500;  // Numero di campioni per blocco
+float vp_buffer[monitor_buffer_size];
+float vm_buffer[monitor_buffer_size];
+int z_buffer[monitor_buffer_size];
+int monitor_idx = 0;
+// time monitor variables
+unsigned long last_monitor_millis = 0;
+const unsigned long monitor_interval = 0.5; // campionamento ogni 10 ms (1 KHz)
+
+// Variables for the Programmable Gain Amplifiers
+int pinsdi = 35;  // SDI - shared]
+int pinclk = 34;  // CLK - shared
+
+// Chip select pins for the 4 PGAs Programmable Gain Amplifiers MAX9939
+int pincs[4] = { 30, 32, 33, 31 };  // CS0 to CS3
+// Real Gain V/V reference values for MAX9939
+const float gainTable[4] = {0.25, 1, 10, 120
+};
+int presetSelected[4];  // 4 chip selectors in total
+
+// Variable for calibration
+volatile float R1_max_cal = 180.0;  // Initial gues amplitude for R1 to be adjusted accordingly to yout operative parameters
+volatile float R2_max_cal = 30.0;   // Initial gues amplitude for R2 to be adjusted accordingly to yout operative parameters
 // Variables for Calibration configuration
 const long CALIBRATION_INTERVAL_MS = sample_interval_ms;
 unsigned long calibration_previous_time_ms = 0;  // Nuovo timer per la calibrazione
@@ -121,7 +129,7 @@ volatile float pidError = 0.0, pidIntegral = 0.0, pidDerivative = 0.0;
 volatile float prevError = 0.0;
 
 // PID parameters
-volatile float Kp = 0.07;
+volatile float Kp = 0.1;
 volatile float Ki = 0.5;
 volatile float Kd = 0.0;
 
@@ -129,8 +137,10 @@ const float DT = sample_interval_ms / 1000.0;  // Sampling time for the PID inte
 
 // Voff_pid --> voltage offset controlled by PID
 float Voff_pid = 0.0;
+
 // TTL control for Freq Ref.
 bool ttl_mode = false;
+
 // --- LED Control Definitions ---
 // ---- Signal from DTV+
 const int LED_A1_RED_PIN = 23;    // D22
@@ -181,6 +191,7 @@ void setup() {
   Serial.print("Stabilizer interferometer");
   Serial.print('\t');
   Serial.println("Authors: Giuseppe E. Lio and Simone Zanotto");
+  Serial.println("Release of 2026 May 08");
   Serial.println("General Information and start up parameters");
   Serial.println(" ");
   Serial.println("Sinwave generator 1 kHz on DAC0 (A12)");
@@ -195,6 +206,8 @@ void setup() {
   Serial.println(Kp, 4);
   Serial.print("Ki: ");
   Serial.println(Ki, 4);
+  
+  Serial.println("All Gain=1 Trim=0 and MEAS Not enabled");
 #endif
 
   initDigitalPots();
@@ -203,105 +216,19 @@ void setup() {
   pid_enabled = false;
   init_leds();  // Inizialize LED pins
 
-  calibration_state = 1;  // Initialize Calibration immediately after Setup
+  calibration_state = 0;  // Initialize Calibration immediately after Setup
   Serial.println("Starting calibration mode - PID deactivated");
 }
 
-
-// DAC update function (to be called in the Timer ISR)
-void update_dac(int sample_index) {
-  // DAC0 sinwave 1 KHz for Piezo
-  write_value_DAC0 = (int)((sine_wave_table[sample_index] * amplitude_scale + voltage_offset) * DAC_MAX_VALUE);
-  analogWrite(A12, write_value_DAC0);
-  // DAC1 Sinwave or TTL for Freq Ref
-  if (ttl_mode) {
-    // TTL MODE ACTIVE
-    a1_coeff = 0.0;
-    a2_coeff = 0.0;
-    float ttl_value = ttl_table[sample_index];  // either 0.0 or 1.0 duty cycle 50%.
-    write_value_DAC1 = (int)(ttl_value * DAC_MAX_VALUE);
-    analogWrite(A13, write_value_DAC1);
-  } else {
-    // NORMAL SINE MODE at 1 KHz, 2 KHZ or mixed.
-    write_value_DAC1 = (int)(((a1_coeff * sine_wave_table[sample_index] + a2_coeff * sine_wave_table_2[sample_index]) + 0.5) * DAC_MAX_VALUE);
-    analogWrite(A13, write_value_DAC1);
-  }
-
-  float rawInput = analogRead(analogInput);  // Reading the analog values from A1 the AC input signal
-  av_vin += beta * (rawInput - av_vin);      //(rawInput - 2048) / 2048.0;
-  vin = rawInput - av_vin;
-  //vin_store[sample_index] = vin; // for debugging
-  float ref1_cos = (float)(sine_wave_table[(sample_index + NUM_SAMPLES / 4) % NUM_SAMPLES]);
-  float ref1_sin = (float)(sine_wave_table[sample_index]);
-  float ref2_cos = (float)(sine_wave_table_2[(sample_index + NUM_SAMPLES / 8) % NUM_SAMPLES]);
-  float ref2_sin = (float)(sine_wave_table_2[sample_index]);
-
-  // Product Signal × Reference
-  float xi1 = vin * ref1_cos;
-  //cos_store[sample_index] = xi1; // for debugging
-  float xq1 = vin * ref1_sin;
-  //sin_store[sample_index] = xq1; // for debugging
-  float xi2 = vin * ref2_cos;
-  float xq2 = vin * ref2_sin;
-
-  // Digital low pass filter
-  // Filter will be updated at each sampling
-  X1_f1 += alpha * (xi1 - X1_f1);
-  X1_f2 += alpha * (X1_f1 - X1_f2);
-  Y1_f1 += alpha * (xq1 - Y1_f1);
-  Y1_f2 += alpha * (Y1_f1 - Y1_f2);
-
-  X2_f1 += alpha * (xi2 - X2_f1);
-  X2_f2 += alpha * (X2_f1 - X2_f2);
-  Y2_f1 += alpha * (xq2 - Y2_f1);
-  Y2_f2 += alpha * (Y2_f1 - Y2_f2);
-}
-
-void lockin() {
-  // Ampiezze stimate
-  // Il fattore 2.0 è corretto per compensare la miscelazione con un riferimento di ampiezza 1
-
-  R1_est = 2.0 * sqrt(X1_f2 * X1_f2 + Y1_f2 * Y1_f2);
-  R2_est = 2.0 * sqrt(X2_f2 * X2_f2 + Y2_f2 * Y2_f2);
-  //Theta_1_rad = atan2(Y1_f2, X1_f2); //Phase of the first signal (radians)
-  //Theta_2_rad = atan2(Y2_f2, X2_f2); //Phase of the second signal (radians)
-  delta_0 = atan2(-(R1_est / R1_max_cal) * sign(X1_f2), (R2_est / R2_max_cal) * sign(X2_f2));
-
-  X1_store[current_sample_index] = X1_f2;
-  Y1_store[current_sample_index] = Y1_f2;
-  X2_store[current_sample_index] = X2_f2;
-  Y2_store[current_sample_index] = Y2_f2;
-  VO_store[current_sample_index] = voltage_offset;
-  DELTA_store[current_sample_index] = delta_0;
-
-  current_sample_index++;
-  if (current_sample_index >= NUM_COLL) {
-    current_sample_index = 0;
-  }
-#ifdef DEBUG_LOCK_IN
-  Serial.print("R1 =");
-  Serial.print(R1_est, 4);
-  Serial.print("\t");
-  Serial.print("R2 =");
-  Serial.print("\t");
-  Serial.print(R2_est, 4);
-  Serial.print("delta_0: ");
-  Serial.println(delta_0);
-#endif
-}
-
-float sign(float x) {
-  if (x > 0.0) return 1;
-  if (x < 0.0) return -1;
-  return 0;
-}
-
-// --- Loop Principale ---
 void loop() {
   handleSerialCommands();
-  unsigned long current_time = micros();
-  update_dac((micros() % PERIOD) / SAMPLE_INTERVAL_US);  // Aggiorna il DAC
-  /**/
+  unsigned long current_time_us = micros();
+  if (current_time_us - previous_time_us >= SAMPLE_INTERVAL_US) {
+    previous_time_us = current_time_us;
+  //current_time_idx = ((micros() % PERIOD) / SAMPLE_INTERVAL_US);
+  update_dac((current_time_us % PERIOD) / SAMPLE_INTERVAL_US);
+  }
+ 
   unsigned long current_time_ms = millis();
 
   if (current_time_ms - previous_time_ms >= sample_interval_ms) {
@@ -417,6 +344,96 @@ void loop() {
   // If calibration_state == 2, Calibration is ignored.
 }
 
+// Function to update the DAC and process the Lock-in in realtime
+void update_dac(int sample_index) {
+  // DAC0 sinwave 1 KHz for Piezo
+  write_value_DAC0 = (int)((sine_wave_table[sample_index] * amplitude_scale + voltage_offset) * DAC_MAX_VALUE);
+  analogWrite(A12, write_value_DAC0);
+  // DAC1 Sinwave or TTL for Freq Ref
+  if (ttl_mode) {
+    // TTL MODE ACTIVE
+    a1_coeff = 0.0;
+    a2_coeff = 0.0;
+    float ttl_value = ttl_table[sample_index];  // either 0.0 or 1.0 duty cycle 50%.
+    write_value_DAC1 = (int)(ttl_value * DAC_MAX_VALUE);
+    analogWrite(A13, write_value_DAC1);
+  } else {
+    // NORMAL SINE MODE at 1 KHz, 2 KHZ or mixed.
+    write_value_DAC1 = (int)(((a1_coeff * sine_wave_table[sample_index] + a2_coeff * sine_wave_table_2[sample_index]) + 0.5) * DAC_MAX_VALUE);
+    analogWrite(A13, write_value_DAC1);
+  }
+
+  float rawInput = analogRead(analogInput);  // Reading the analog values from A1 the AC input signal
+  av_vin += beta * (rawInput - av_vin);      //(rawInput - 2048) / 2048.0;
+  vin = rawInput - av_vin;
+  //vin_store[sample_index] = vin; // for debugging
+  float ref1_cos = (float)(sine_wave_table[(sample_index + NUM_SAMPLES / 4) % NUM_SAMPLES]);
+  float ref1_sin = (float)(sine_wave_table[sample_index]);
+  float ref2_cos = (float)(sine_wave_table_2[(sample_index + NUM_SAMPLES / 8) % NUM_SAMPLES]);
+  float ref2_sin = (float)(sine_wave_table_2[sample_index]);
+
+  // Product Signal × Reference
+  float xi1 = vin * ref1_cos;
+  //cos_store[sample_index] = xi1; // for debugging
+  float xq1 = vin * ref1_sin;
+  //sin_store[sample_index] = xq1; // for debugging
+  float xi2 = vin * ref2_cos;
+  float xq2 = vin * ref2_sin;
+
+  // Digital low pass filter
+  // Filter will be updated at each sampling
+  X1_f1 += alpha * (xi1 - X1_f1);
+  X1_f2 += alpha * (X1_f1 - X1_f2);
+  Y1_f1 += alpha * (xq1 - Y1_f1);
+  Y1_f2 += alpha * (Y1_f1 - Y1_f2);
+
+  X2_f1 += alpha * (xi2 - X2_f1);
+  X2_f2 += alpha * (X2_f1 - X2_f2);
+  Y2_f1 += alpha * (xq2 - Y2_f1);
+  Y2_f2 += alpha * (Y2_f1 - Y2_f2);
+}
+
+// This function store and in case of Debugging displays the digital Lock-in amplifier evaluated values
+void lockin() {
+  // Ampiezze stimate
+  // Il fattore 2.0 è corretto per compensare la miscelazione con un riferimento di ampiezza 1
+
+  R1_est = 2.0 * sqrt(X1_f2 * X1_f2 + Y1_f2 * Y1_f2);
+  R2_est = 2.0 * sqrt(X2_f2 * X2_f2 + Y2_f2 * Y2_f2);
+  //Theta_1_rad = atan2(Y1_f2, X1_f2); //Phase of the first signal (radians)
+  //Theta_2_rad = atan2(Y2_f2, X2_f2); //Phase of the second signal (radians)
+  delta_0 = atan2(-(R1_est / R1_max_cal) * sign(X1_f2), (R2_est / R2_max_cal) * sign(X2_f2));
+
+  X1_store[current_sample_index] = X1_f2;
+  Y1_store[current_sample_index] = Y1_f2;
+  X2_store[current_sample_index] = X2_f2;
+  Y2_store[current_sample_index] = Y2_f2;
+  VO_store[current_sample_index] = voltage_offset;
+  DELTA_store[current_sample_index] = delta_0;
+
+  current_sample_index++;
+  if (current_sample_index >= NUM_COLL) {
+    current_sample_index = 0;
+  }
+#ifdef DEBUG_LOCK_IN
+  Serial.print("R1 =");
+  Serial.print(R1_est, 4);
+  Serial.print("\t");
+  Serial.print("R2 =");
+  Serial.print("\t");
+  Serial.print(R2_est, 4);
+  Serial.print("delta_0: ");
+  Serial.println(delta_0);
+#endif
+}
+
+float sign(float x) {
+  if (x > 0.0) return 1;
+  if (x < 0.0) return -1;
+  return 0;
+}
+
+// Function for the PID 
 void PID() {
   volatile float VOFF_MIN = amplitude_scale;
   volatile float VOFF_MAX = 1.0 - amplitude_scale;
@@ -501,7 +518,8 @@ void run_calibration_calculation() {
   Serial.println("Calibration completed. PID started.");
 }
 
-// GAIN table B and TRIM C in 4 bit (bool[4]) // for reference see the datasheet of MAX9939
+// GAIN table B and TRIM C in 4 bit (bool[4]) // for reference see the datasheet of MAX9939 
+// see it at the following link https://www.analog.com/media/en/technical-documentation/data-sheets/max9939.pdf
 const bool presetMap[4][4] = {
   { 1, 0, 0, 1 },   // 1 --> 0.25
   { 0, 0, 0, 0 },  // 2 --> 1
@@ -528,23 +546,18 @@ const bool channelMap[16][4] = {
   { 1, 1, 1, 1 }   // 16
 };
 
-void initDigitalPots() {  // This function is fundamental for resetting PGAs at every restart, otherwise they retain their previous setting
+// This function is fundamental for resetting PGAs at every restart, otherwise they retain their previous setting
+void initDigitalPots() {  
   for (int csIndex = 0; csIndex < 4; csIndex++) {
     int csPin = pincs[csIndex];
-
-    // Initialize GAIN with gain 0.25 and enableBit=0
-    buildDigitalDataFromInput(csPin, 0, 0, 'P', false, true);
-
+    // Initialize GAIN with gain 1 and enableBit=0 // gain 0.25 is index by 0
+    buildDigitalDataFromInput(csPin, 1, 0, 'P', false, true);
     // Initialize TRIM with value 1, polarity=P and enableBit=0
     buildDigitalDataFromInput(csPin, 0, 0, 'P', false, false);
-
-    // Print the log on Serial
-    Serial.print("Init Pot ");
-    Serial.print(csIndex + 1);
-    Serial.println(" → Gain=1 Trim=1 P0");
   }
 }
 
+// This is the function that allows passing commands trhough the Arduino IDE itself or the Python GUI. 
 void handleSerialCommands() {
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
@@ -791,6 +804,7 @@ void handleSerialCommands() {
   }
 }
 
+// The following two functions are used to build the command to pass the MAX9939 parameters by using the command parser 
 void buildDigitalDataFromInput(
   int csPin,
   int presetIndex,
@@ -846,6 +860,7 @@ void digitalPotWrite(int pincs, bool digitaldata[8]) {
   digitalWrite(pincs, HIGH);
 }
 
+// If used it allows to show the values stored during the collection 
 void print_vin() {
   for (int i = 0; i < NUM_SAMPLES; i++) {
     Serial.print(vin_store[i]);
@@ -857,11 +872,8 @@ void print_vin() {
   Serial.println();
 }
 
+// If used it allows to show the lock-in values and print them in the GUI plots 
 void print_lock_in() {
-  // Print the data starting from the oldest sample (the one after the last one written)
-  // up to the last sample written.
-
-  // Use the correct global index
   int start_index = current_sample_index;
 
   for (int i = 0; i < NUM_COLL; i++) {
