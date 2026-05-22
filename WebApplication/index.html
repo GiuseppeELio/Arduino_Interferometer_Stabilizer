@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Interferometer Stabilizer · Lab Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-deco">
+  <div class="bg-glow bg-glow-a"></div>
+  <div class="bg-glow bg-glow-b"></div>
+  <div class="bg-glow bg-glow-c"></div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4l12.8-12.8"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-title">Interferometer Stabilizer</div>
+      <div class="brand-sub">Digital lock-in · PID · Arduino GIGA R1 WiFi</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="status-pill" id="status_label">
+      <span class="dot dot-red"></span>
+      <span class="status-text">Disconnected</span>
+    </span>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ============ COLONNA SINISTRA ============ -->
+  <section class="col-left">
+
+    <!-- Connection -->
+    <div class="card card-grad">
+      <div class="card-row">
+        <div class="card-title-block">
+          <div class="eyebrow">Hardware</div>
+          <h2 class="card-title">Connection</h2>
+        </div>
+        <span class="status-pill mini" id="status_pill_mini">
+          <span class="dot dot-red"></span>
+          <span class="status-text">Offline</span>
+        </span>
+      </div>
+      <div class="card-body row gap-md wrap mt-sm">
+        <div class="field">
+          <label>Port</label>
+          <input type="text" id="port_edit" value="(Web Serial)" disabled>
+        </div>
+        <div class="field">
+          <label>Baud</label>
+          <input type="number" id="baud_spin" value="115200" min="300" max="4000000">
+        </div>
+        <button class="btn btn-primary" id="connect_btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 17l-5-5 5-5M20 12H4"/></svg>
+          Connect
+        </button>
+        <button class="btn btn-ghost" id="disconnect_btn" disabled>Disconnect</button>
+      </div>
+    </div>
+
+    <!-- PID & Parameters (with sliders) -->
+    <div class="card card-grad">
+      <div class="card-row">
+        <div class="card-title-block">
+          <div class="eyebrow">Control loop</div>
+          <h2 class="card-title">PID &amp; Parameters</h2>
+        </div>
+        <label class="switch" title="PID enable">
+          <input type="checkbox" id="pid_toggle">
+          <span class="slider-pill"></span>
+          <span class="switch-label">PID</span>
+        </label>
+      </div>
+
+      <div class="sliders">
+        <!-- Generated via template-like markup; one row per param -->
+        <div class="slider-row" data-param="P">
+          <div class="slider-head">
+            <span class="slider-name">K<sub>p</sub></span>
+            <span class="slider-hint">proportional</span>
+          </div>
+          <input type="range" class="range" id="kp_range" min="0" max="1" step="0.001" value="0.05">
+          <div class="slider-tail">
+            <input type="number" id="kp_field" class="numbox" step="0.001" value="0.05">
+            <button class="set-btn" data-set="P">SET</button>
+          </div>
+        </div>
+
+        <div class="slider-row" data-param="I">
+          <div class="slider-head">
+            <span class="slider-name">K<sub>i</sub></span>
+            <span class="slider-hint">integral</span>
+          </div>
+          <input type="range" class="range" id="ki_range" min="0" max="1" step="0.001" value="0.5">
+          <div class="slider-tail">
+            <input type="number" id="ki_field" class="numbox" step="0.001" value="0.5">
+            <button class="set-btn" data-set="I">SET</button>
+          </div>
+        </div>
+
+        <div class="slider-row" data-param="D">
+          <div class="slider-head">
+            <span class="slider-name">K<sub>d</sub></span>
+            <span class="slider-hint">derivative</span>
+          </div>
+          <input type="range" class="range" id="kd_range" min="0" max="1" step="0.001" value="0.0">
+          <div class="slider-tail">
+            <input type="number" id="kd_field" class="numbox" step="0.001" value="0.0">
+            <button class="set-btn" data-set="D">SET</button>
+          </div>
+        </div>
+
+        <div class="slider-row" data-param="O">
+          <div class="slider-head">
+            <span class="slider-name">Offset</span>
+            <span class="slider-hint">V<sub>off</sub> 0–1</span>
+          </div>
+          <input type="range" class="range" id="off_range" min="0" max="1" step="0.001" value="0.5">
+          <div class="slider-tail">
+            <input type="number" id="off_field" class="numbox" step="0.001" value="0.5">
+            <button class="set-btn" data-set="O">SET</button>
+          </div>
+        </div>
+
+        <div class="slider-row" data-param="A">
+          <div class="slider-head">
+            <span class="slider-name">Amplitude</span>
+            <span class="slider-hint">0–0.5</span>
+          </div>
+          <input type="range" class="range" id="amp_range" min="0" max="0.5" step="0.001" value="0.05">
+          <div class="slider-tail">
+            <input type="number" id="amp_field" class="numbox" step="0.001" value="0.05">
+            <button class="set-btn" data-set="A">SET</button>
+          </div>
+        </div>
+
+        <div class="slider-row" data-param="T">
+          <div class="slider-head">
+            <span class="slider-name">Sample T</span>
+            <span class="slider-hint">ms (1–500)</span>
+          </div>
+          <input type="range" class="range" id="t_range" min="1" max="500" step="1" value="50">
+          <div class="slider-tail">
+            <input type="number" id="t_field" class="numbox" min="1" max="10000" value="50">
+            <button class="set-btn" data-set="T">SET</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row gap-sm wrap mt">
+        <button class="btn btn-ghost" id="save_params_btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Save
+        </button>
+        <button class="btn btn-ghost" id="load_params_btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Load
+        </button>
+        <button class="btn btn-accent" id="send_all_params_btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+          Send all
+        </button>
+      </div>
+    </div>
+
+    <!-- FreqRef + Monitor side-by-side -->
+    <div class="grid-2">
+      <div class="card card-grad">
+        <div class="eyebrow">Reference</div>
+        <h2 class="card-title">FreqRef Mode</h2>
+        <div class="segmented vertical" data-control="mode">
+          <button data-idx="0" class="seg active">OFF</button>
+          <button data-idx="1" class="seg">SinWave</button>
+          <button data-idx="2" class="seg">TTL</button>
+        </div>
+      </div>
+
+      <div class="card card-grad">
+        <div class="eyebrow">Live readout</div>
+        <h2 class="card-title">Monitor V+ / V−</h2>
+        <button class="btn btn-soft full mt-sm" id="monitor_btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+          Open meter
+        </button>
+        <div class="cmd-strip mt-sm"><span class="muted">Tip:</span> opens floating scope</div>
+      </div>
+    </div>
+
+    <!-- PGA -->
+    <div class="card card-grad">
+      <div class="card-row">
+        <div class="card-title-block">
+          <div class="eyebrow">Front-end</div>
+          <h2 class="card-title">Programmable Gain Amplifier</h2>
+        </div>
+      </div>
+      <div class="pga-grid mt-sm">
+        <div class="field"><label>CS</label>
+          <select id="cs_combo"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+        </div>
+        <div class="field"><label>Gain</label>
+          <select id="preset_combo">
+            <option value="1">0.25</option><option value="2">1</option>
+            <option value="3">10</option><option value="4">120</option>
+          </select>
+        </div>
+        <div class="field"><label>Trim</label>
+          <select id="chan_combo">
+            <option value="1">0</option><option value="2">1.3</option><option value="3">2.5</option>
+            <option value="4">3.8</option><option value="5">4.9</option><option value="6">6.1</option>
+            <option value="7">7.3</option><option value="8">8.4</option><option value="9">10.6</option>
+            <option value="10">11.7</option><option value="11">12.7</option><option value="12">13.7</option>
+            <option value="13">14.7</option><option value="14">15.7</option><option value="15">16.7</option>
+            <option value="16">17.6</option>
+          </select>
+        </div>
+        <div class="field"><label>Polarity</label>
+          <select id="pol_combo"><option>P</option><option>N</option></select>
+        </div>
+        <div class="field"><label>Enable</label>
+          <select id="en_combo"><option>0</option><option>1</option></select>
+        </div>
+        <button class="btn btn-primary" id="send_pga_btn">Send</button>
+      </div>
+      <div class="cmd-strip mt-sm"><span class="muted">Last cmd:</span> <code id="pga_cmd_label">—</code></div>
+    </div>
+
+    <!-- Data Collection -->
+    <div class="card card-grad">
+      <div class="card-row">
+        <div class="card-title-block">
+          <div class="eyebrow">Workflow</div>
+          <h2 class="card-title">Data Collection</h2>
+        </div>
+      </div>
+
+      <div class="acq-grid mt-sm">
+        <div class="field"><label>Repetitions</label>
+          <input type="number" id="times_spin" min="1" max="100" value="2">
+        </div>
+        <div class="field"><label>Coll. points</label>
+          <input type="number" id="samples_spin" min="1" max="4000" value="200">
+        </div>
+        <div class="field flex-2"><label>Filename</label>
+          <input type="text" id="filename_edit" value="./Test_PID_ON_OFF">
+        </div>
+      </div>
+
+      <div class="row gap-md wrap mt">
+        <label class="check"><input type="checkbox" id="save_check" checked><span>Save data</span></label>
+        <label class="check"><input type="checkbox" id="analyze_check"><span>Analysis after collection</span></label>
+      </div>
+
+      <div class="row gap-sm wrap mt">
+        <button class="btn btn-success" id="start_acq_btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Start PID ON/OFF
+        </button>
+        <button class="btn btn-danger" id="stop_acq_btn" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+          Stop
+        </button>
+        <button class="icon-tile" id="calibrate_btn" title="Calibrate">⚙</button>
+        <button class="icon-tile" id="print_btn" title="PRINT (1 block)">⤓</button>
+        <button class="icon-tile" id="reset_btn" title="Reset">↻</button>
+        <button class="btn btn-accent" id="analyze_btn" disabled>📊 Analysis</button>
+      </div>
+
+      <div class="log-wrap mt">
+        <div class="log-head">
+          <span>Console</span>
+          <button class="set-btn ghost" id="clear_log_btn">clear</button>
+        </div>
+        <pre id="log_area"></pre>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ COLONNA DESTRA — Plots ============ -->
+  <section class="col-right">
+    <div class="card plot-card card-grad">
+      <div class="eyebrow">Live</div>
+      <h2 class="card-title">X<sub>1</sub> X<sub>2</sub> Y<sub>1</sub> Y<sub>2</sub></h2>
+      <div class="plot-body"><canvas id="canvas_IQ" width="440" height="220"></canvas></div>
+    </div>
+    <div class="card plot-card card-grad">
+      <div class="eyebrow">Live</div>
+      <h2 class="card-title">δ (deg)</h2>
+      <div class="plot-body"><canvas id="canvas_Delta" width="440" height="220"></canvas></div>
+    </div>
+    <div class="card plot-card card-grad">
+      <div class="eyebrow">Live</div>
+      <h2 class="card-title">V<sub>off</sub></h2>
+      <div class="plot-body"><canvas id="canvas_V" width="440" height="220"></canvas></div>
+    </div>
+  </section>
+</main>
+
+<!-- Monitor popup -->
+<div id="monitor_window" class="popup hidden">
+  <div class="popup-head">
+    <span>📡 Monitor V+ / V−</span>
+    <button class="icon-btn" id="monitor_close_btn">✕</button>
+  </div>
+  <div class="popup-body">
+    <div class="vmeter">
+      <div class="vmeter-cell">
+        <span class="vmeter-label">V+</span>
+        <span class="vmeter-val" id="vplus_field">0.000</span>
+      </div>
+      <div class="vmeter-cell">
+        <span class="vmeter-label">V−</span>
+        <span class="vmeter-val" id="vminus_field">0.000</span>
+      </div>
+    </div>
+    <canvas id="canvas_osc" width="480" height="200"></canvas>
+  </div>
+</div>
+
+<!-- Analysis dialog -->
+<div id="analysis_dialog" class="dialog hidden">
+  <div class="dialog-head">
+    <span>🔬 Analysis · analyzer_simple_PID</span>
+    <button class="icon-btn" id="analysis_close_btn">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="card plot-card card-grad"><h2 class="card-title">X<sub>1</sub>, X<sub>2</sub>, Y<sub>1</sub>, Y<sub>2</sub></h2><div class="plot-body"><canvas id="canvas_a1" width="560" height="280"></canvas></div></div>
+    <div class="card plot-card card-grad"><h2 class="card-title">Amplitude · Phase</h2><div class="plot-body"><canvas id="canvas_a2" width="560" height="280"></canvas></div></div>
+    <div class="card plot-card card-grad"><h2 class="card-title">δ · V<sub>off</sub></h2><div class="plot-body"><canvas id="canvas_a3" width="560" height="280"></canvas></div></div>
+    <div class="card plot-card card-grad"><h2 class="card-title">FFT of δ — PID OFF vs ON</h2><div class="plot-body"><canvas id="canvas_a4" width="560" height="280"></canvas></div></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

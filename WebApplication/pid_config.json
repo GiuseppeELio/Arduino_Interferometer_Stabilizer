@@ -1,0 +1,9 @@
+{
+    "Kp": 0.02,
+    "Ki": 0.5,
+    "Kd": 0.0,
+    "Offset": 0.5,
+    "Amplitude": 0.5,
+    "SampleInterval": 51,
+    "NumSamples": 200
+}
