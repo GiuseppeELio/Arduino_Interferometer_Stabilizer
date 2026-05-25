@@ -21,6 +21,6 @@ There you can set all the useful parameters, Activate or Deactive the PID, colle
 ![](GUI_working_example/GUI_analysis.png)
 
 
-We updated the repository with a web application, it is runned directly here on Github and available at the following link [link](https://giuseppeelio.github.io/Arduino_Interferometer_Stabilizer/). You can directly use it connecting your Arduino Interferometer Stabilizer and use it without any software or running python locally. 
+We updated the repository with a web application, it is runned directly here on Github and available at the following [link](https://giuseppeelio.github.io/Arduino_Interferometer_Stabilizer/). You can directly use it connecting your Arduino Interferometer Stabilizer and use it without any software or running python locally. Pay attention it works perfectly with Google Chrome, on Mac Os Safari doesn't work. 
 
 About the electronic and the board manufacturing, the schematics, the Gerber file, the BoM and the Pick and Place files are avaialble in the relative directories.  
