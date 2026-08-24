@@ -25,11 +25,6 @@ We updated the repository with a web application, it is runned directly here on 
 
 About the electronic and the board manufacturing, the schematics, the Gerber file, the BoM and the Pick and Place files are avaialble in the relative directories.  
 
-## A supporter is worth a thousand followers.
-
-Dear reader, if you are interested in the development of Arduino Interferometer Stabilizer and its improvement with new features, please support our team by using the support button or by going directly to 
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/gpplio93sx). We are actively working to do our best to achieve a reliable experimental apparatus. With your support we will move forward in developing new features, improve the web application experience and make it more essential for your experiments. You can support us directly buying coffees or with a membership. The support page is based on our previous other projects such as (https://github.com/GiuseppeELio/FRESCO-Board)(FRESCO-Board) an experimental apparatus to standardize Passive Radiative Cooling outdoor measurements. 
-
 ## Don’t forget to cite our published scientific article
 Lio, Giuseppe Emanuele, et al. "Arduino based interferometer stabilizer equipped with a digital lock-in amplifier." arXiv preprint arXiv:2606.30199 (2026).
 
