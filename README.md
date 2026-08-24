@@ -28,3 +28,5 @@ About the electronic and the board manufacturing, the schematics, the Gerber fil
 ## Don’t forget to cite our published scientific article
 Lio, Giuseppe Emanuele, et al. "Arduino based interferometer stabilizer equipped with a digital lock-in amplifier." arXiv preprint arXiv:2606.30199 (2026).
 
+## Repository available also on Zenodo
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22082182.svg)](https://doi.org/10.5281/zenodo.22082182) DOI: 10.5281/zenodo.22082182
